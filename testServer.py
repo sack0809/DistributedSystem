@@ -1,40 +1,35 @@
-import queue, threading, socket
-from time import sleep
+import socket
+import sys
 
-class worker(threading.Thread):
-    def __init__(self,q):
-        super(worker,self).__init__()
-        self.qu = q
-
-    def run(self):
-        while True:
-            new_task=self.qu.get(True)
-            print (new_task)
-            i=0
-            while i < 10:
-                print ("working ...")
-                sleep(1)
-                i += 1
-                try:
-                    another_task=self.qu.get(False)
-                    print (another_task)
-                except Queue.Empty:
-                    pass
-
-task_queue = queue.Queue()
-w = worker(task_queue)
-w.daemon = True
-w.start()
-
+# Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(('localhost', 4200))
+# Bind the socket to the port
+server_name = sys.argv[1]
+
+
+server_address = (server_name, 10000)
+print (sys.stderr, 'starting up on %s port %s' % server_address)
+sock.bind(server_address)
 sock.listen(1)
+
+while True:
+    # Wait for a connection
+    print (sys.stderr, 'waiting for a connection')
+    connection, client_address = sock.accept()
 try:
-    while True:
-        conn, addr = sock.accept()
-        data = conn.recv(32)
-        task_queue.put(data)
-        conn.sendall("OK")
-        conn.close()
-except:
-    sock.close()
+        print (sys.stderr, 'connection from', client_address)
+
+        # Receive the data in small chunks and retransmit it
+        while True:
+            data = connection.recv(16)
+            print  (sys.stderr, 'received "%s"' % data)
+            if data:
+                print (sys.stderr, 'sending data back to the client')
+                connection.sendall(data)
+            else:
+                print (sys.stderr, 'no more data from', client_address)
+                break
+            
+finally:
+        # Clean up the connection
+        connection.close()
