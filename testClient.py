@@ -1,32 +1,47 @@
-import socket
-import sys
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Dec 10 03:49:50 2017
 
-# Create a TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+@author: playsafe
+"""
 
-# Connect the socket to the port where the server is listening
-server_address = (sys.argv[1], 10000)
-print (sys.stderr, 'connecting to %s port %s' % server_address)
-sock.connect(server_address)
+import sys, socket, struct, random
 
-try:
-    
-    # Send data
-    message = 'This is the message.  It will be repeated.'
-    print (sys.stderr, 'sending "%s"' % message)
-    #sock.sendall(message)
-    sock.sendto(message.encode('utf-8'), server_address)
+class Client():
+
+	
+
+	def __init__(self, port):
+
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.settimeout(1.5)
+		self.ip = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
+		self.port = port
+		s.connect(("0.0.0.0", self.port))
+
+		valid = False
+
+		while 1:
+
+			while not valid:
+				self.message = input(">: ")
+				if any(x in self.message for x in self.commands):
+					valid = True
+				else:
+					print ("Invalid Command\n")
+			s.sendall(self.message)
+			if self.message == "QUIT":
+				sys.exit()
+			try:
+				recv_data = s.recv(4096)
+				print (recv_data + '\n')
+				valid = False;
+			except socket.timeout:
+				print ("Something went wrong\n")
 
 
-    # Look for the response
-    amount_received = 0
-    amount_expected = len(message)
-    
-    while amount_received < amount_expected:
-        data = sock.recv(16)
-        amount_received += len(data)
-        print (sys.stderr, 'received "%s"' % data)
+if __name__ == '__main__':
 
-finally:
-    print (sys.stderr, 'closing socket')
-    sock.close()
+	port = int(sys.argv[1])
+	Client(port)
