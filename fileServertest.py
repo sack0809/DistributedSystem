@@ -20,34 +20,34 @@ class ThreadPoolMixIn(socketserver.ThreadingMixIn):
     
 
     
-    def serverRun(self):
-        self.request_queue = queue.Queue(self.pool_size)
-        for trd in range(self.pool_size):
-            trd = threading.Thread(target = self.process_request_thread) 
+    def serverRun(this):
+        this.request_queue = queue.Queue(this.pool_size)
+        for trd in range(this.pool_size):
+            trd = threading.Thread(target = this.process_request_thread) 
             trd.start()
 
         while 1:
-            self.requestHandler() 
+            this.requestHandler() 
 
     
-    def requestHandler(self):
-        request, client_address = self.get_request()
-        self.request_queue.put((request,client_address))
+    def requestHandler(this):
+        request, client_address = this.get_request()
+        this.request_queue.put((request,client_address))
 
    
-    def process_request_thread(self):
+    def process_request_thread(this):
         while 1:
             try:
-                request, client_address = self.request_queue.get()
+                request, client_address = this.request_queue.get()
             except queue.Empty:
                 pass
-                self.finish_request(request, client_address)
+                this.finish_request(request, client_address)
 
 
 
     
 
-    def shutdown(self):
+    def shutdown(this):
         server.server_close()
          
 
