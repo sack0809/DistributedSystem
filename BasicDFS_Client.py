@@ -84,12 +84,22 @@ def connect_to_server_userin():
     server_address = ('127.0.0.1', port_num)
     print ("connecting to %s on port %s\n" % server_address)
     sock.connect(server_address)
-
+    socktest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address_test = ('127.0.0.1', 9091)
+    print ("connecting to %s on port %s\n" % server_address_test)
+    socktest.connect(server_address_test)
     client_thread_pool.add_task(
         get_server_response,
         sock
     )
+    client_thread_pool.add_task(
+        get_server_response,
+        socktest
+    )
 
+    client_thread_pool.add_task(
+        auto_update_cache
+    )
     client_thread_pool.add_task(
         auto_update_cache
     )
@@ -103,19 +113,25 @@ def connect_to_server_userin():
         cache_res = cache_interaction(sock, message)
         # if there is no cached response
         if cache_res == None:
-            sock.send(message)
-            print ("Message Sent"+message)
-            if message == "exit":
-                os._exit(0)
+           if message.startswith("lock") or message.startswith("release"):
+              socktest.send(message)
+              print ("Message Sent"+message)
+           else:
+               sock.send(message)
+               print ("Message Sent"+message)
+           if message == "exit":
+               os._exit(0)
         else:
             print (cache_res)
 
     sock.close()
+    socktest.close()
 
 def get_server_response(socket):
     global response_var
     while True:
         data = socket.recv( 1024 )
+        print (data)
         response_var = data
         if (data != None):
             # if reading cache item
