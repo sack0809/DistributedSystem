@@ -1,16 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 12 23:22:24 2017
-
-@author: playsafe
-"""
-
+#!/usr/bin/python2.7
 
 import sys
 IS_PY2 = sys.version_info < (3, 0)
 import datetime
-#import threadpool
 import time
 import os
 import shutil
@@ -24,10 +16,8 @@ else:
 
 from threading import Thread
 
-#from multiprocessing import Pool as threadPool
-#from queue import Queue
-#from threading import Thread
 
+#Initiating Thred Pool
 
 class Worker(Thread):
     """ Thread executing tasks from a given tasks queue """
@@ -117,8 +107,8 @@ class FileSystemManager:
     active_clients = []
 
     # Next ID to be assigned to new client and events
-    next_client_id = 0
-    next_event_id = 0
+    clientId = 0
+    eventId = 0
 
     # List of events and IDs
     # ( event_id , command, time )
@@ -140,16 +130,16 @@ class FileSystemManager:
             self.auto_release
         )
 
-    # Generate a client ID and update next_client_id
+    # Generate a client ID and update clientId
     def gen_client_id(self):
-        return_client_id = self.next_client_id
-        self.next_client_id = self.next_client_id + 1
+        return_client_id = self.clientId
+        self.clientId = self.clientId + 1
         return return_client_id
 
-    # Generate a client ID and update next_event_id
+    # Generate a client ID and update eventId
     def gen_event_id(self):
-        return_event_id = self.next_event_id
-        self.next_event_id = self.next_event_id + 1
+        return_event_id = self.eventId
+        self.eventId = self.eventId + 1
         return return_event_id
 
     #
@@ -495,6 +485,18 @@ class FileSystemManager:
                 self.add_event("rmdir " + path)
                 return 0
 
+    def create_file(self, client_id, item_name):
+        item_type = self.item_exists(client_id, item_name)
+        # exit if the item does not existi
+
+        if os.path.exists(item_name):
+           os.utime(item_name, None)
+        else:
+           open(item_name, 'a').close()   
+           self.add_event("Created File" + item_name)
+           #self.release_item(client, item_name)
+           return 0
+
     #
     # Testing functions
     #
@@ -503,6 +505,6 @@ class FileSystemManager:
         print ("active_clients: "+ (self.active_clients).__repr__())
         print ("events: "+ (self.events).__repr__())
         print ("locked_files: "+ (self.locked_files).__repr__())
-        print ("next_client_id: %d" % self.next_client_id)
-        print ("next_event_id: %d" % self.next_event_id)
+        print ("clientId: %d" % self.clientId)
+        print ("eventId: %d" % self.eventId)
         print ("")

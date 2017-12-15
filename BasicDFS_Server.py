@@ -1,10 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 12 23:25:35 2017
-
-@author: playsafe
-"""
 import sys
 IS_PY2 = sys.version_info < (3, 0)
 if IS_PY2:
@@ -19,13 +14,13 @@ import FileServer
 
 port_number = 9090
 
-#ip_address = socket.gethostbyname(socket.gethostname())
+#ip_address = sockServeret.gethostbyname(sockServeret.gethostname())
 
-file_system_manager = FileServer.FileSystemManager('FileSystemDir')
-
-
+fileManager = FileServer.FileSystemManager('FileSystemDir')
 
 
+
+#Initiating Thread Pool
 
 
 class Worker(Thread):
@@ -71,19 +66,19 @@ class ThreadPool:
 
 server_thread_pool = ThreadPool(100)
 
-def create_server_socket():
-    # create socket  and initialise to localhost:8000
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def createServerSocket():
+    # create sockServeret  and initialise to localhost:8000
+    sockServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = ('127.0.0.1', port_number)
     print ("starting up on %s port %s" % server_address)
-    # bind socket to server address and wait for incoming connections4
-    sock.bind(server_address)
-    sock.listen(1)
+    # bind sockServeret to server address and wait for incoming connections4
+    sockServer.bind(server_address)
+    sockServer.listen(1)
 
     while True:
-        # sock.accept returns a 2 element tuple
-        connection, client_address = sock.accept()
-        print ("Connection from %s  \n" %   connection, client_address)
+        # sockServer.accept returns a 2 element tuple
+        connection, client_address = sockServer.accept()
+        print ("Connection from %s \n" %   connection, client_address)
         # Hand the client interaction off to a seperate thread
         server_thread_pool.add_task(
             start_client_interaction,
@@ -95,11 +90,13 @@ def create_server_socket():
 def start_client_interaction(connection, client_address):
     try:
         #A client id is generated, that is associated with this client
-        client_id = file_system_manager.add_client(connection)
+        client_id = fileManager.add_client(connection)
         while True:
             data = connection.recv(2048).decode()
             print(str(data))
             split_data = seperate_input_data(data)
+            #print (split_data[0])
+            #print (split_data[1])
             # Respond to the appropriate message
             if data == "KILL_SERVICE":
                 kill_service(connection)
@@ -123,10 +120,13 @@ def start_client_interaction(connection, client_address):
                 pwd(connection, split_data, client_id)
             elif split_data[0] == "exit":
                 exit(connection, split_data, client_id)
+            elif split_data[0] == "touch":
+                touch(connection, split_data, client_id)
             else:
                 error_response(connection, 1)
     except:
         error_response(connection, 0)
+        print ("Got error"+ split_data)
         connection.close()
 
 def kill_service(connection):
@@ -139,17 +139,17 @@ def kill_service(connection):
 def ls(connection, client_id, split_data):
     response = ""
     if len(split_data) == 1:
-        response = file_system_manager.list_directory_contents(client_id)
+        response = fileManager.list_directory_contents(client_id)
         connection.sendall(response)
     elif len(split_data) == 2:
-        response = file_system_manager.list_directory_contents(client_id, split_data[1])
+        response = fileManager.list_directory_contents(client_id, split_data[1])
         connection.sendall(response)
     else:
         error_response(connection, 1)
 
 def cd(connection, split_data, client_id):
     if len(split_data) == 2:
-        res = file_system_manager.change_directory(split_data[1], client_id)
+        res = fileManager.change_directory(split_data[1], client_id)
         response = ""
         if res  == 0:
             response = "changed directory to %s" % split_data[1]
@@ -161,13 +161,13 @@ def cd(connection, split_data, client_id):
 
 def up(connection, split_data, client_id):
     if len(split_data) == 1:
-        file_system_manager.move_up_directory(client_id)
+        fileManager.move_up_directory(client_id)
     else:
         error_response(connection, 1)
 
 def read(connection, split_data, client_id):
     if len(split_data) == 2:
-        response = file_system_manager.read_item(client_id, split_data[1])
+        response = fileManager.read_item(client_id, split_data[1])
         connection.sendall(response)
     else:
         error_response(connection, 1)
@@ -175,7 +175,7 @@ def read(connection, split_data, client_id):
 def write(connection, split_data, client_id):
     response = ""
     if len(split_data) == 2:
-        res = file_system_manager.write_item(client_id, split_data[1], "")
+        res = fileManager.write_item(client_id, split_data[1], "")
         if res == 0:
             response = "write successfull"
         
@@ -183,7 +183,7 @@ def write(connection, split_data, client_id):
             response = "cannot write to a directory file"
         connection.sendall(response)
     elif len(split_data) == 3:
-        res = file_system_manager.write_item(client_id, split_data[1], split_data[2])
+        res = fileManager.write_item(client_id, split_data[1], split_data[2])
         if res == 0:
             response = "write successfull"
         
@@ -195,7 +195,7 @@ def write(connection, split_data, client_id):
 
 def delete(connection, split_data, client_id):
     if len(split_data) == 2:
-        res = file_system_manager.delete_file(client_id, split_data[1])
+        res = fileManager.delete_file(client_id, split_data[1])
         response = ""
         if res == 0:
             response = "delete successfull"
@@ -213,7 +213,7 @@ def delete(connection, split_data, client_id):
 def mkdir(connection, split_data, client_id):
     if len(split_data) == 2:
         response = ""
-        res = file_system_manager.make_directory(client_id, split_data[1])
+        res = fileManager.make_directory(client_id, split_data[1])
         if res == 0:
             response = "new directory %s created" % split_data[1]
         elif res == 1:
@@ -227,7 +227,7 @@ def mkdir(connection, split_data, client_id):
 def rmdir(connection, split_data, client_id):
     if len(split_data) == 2:
         response = ""
-        res = file_system_manager.remove_directory(client_id, split_data[1])
+        res = fileManager.remove_directory(client_id, split_data[1])
         if res == -1:
             response = "%s doesn't exist" % split_data[1]
         elif res == 0:
@@ -242,14 +242,25 @@ def rmdir(connection, split_data, client_id):
 
 def pwd(connection, split_data, client_id):
     if len(split_data) == 1:
-        response = file_system_manager.get_working_dir(client_id)
+        response = fileManager.get_working_dir(client_id)
+        connection.sendall(response)
+    else:
+        error_response(connection, 1)
+
+def touch(connection, split_data, client_id):
+    if len(split_data) == 2:
+        print("Passing to file manager")
+        res = fileManager.create_file(client_id, split_data[1])
+        response = ""
+        if res == 0:
+            response = "File Created Successfully"
         connection.sendall(response)
     else:
         error_response(connection, 1)
 
 def exit(connection, split_data, client_id):
     if len(split_data) == 1:
-        file_system_manager.disconnect_client(connection, client_id)
+        fileManager.disconnect_client(connection, client_id)
     else:
         error_response(connection, 1)
 
@@ -267,6 +278,6 @@ def seperate_input_data(input_data):
     return seperated_data
 
 if __name__ == '__main__':
-    create_server_socket()
+    createServerSocket()
     # wait for threads to complete
     server_thread_pool.wait_completion()
