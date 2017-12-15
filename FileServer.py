@@ -17,7 +17,8 @@ else:
 from threading import Thread
 
 
-#Initiating Thred Pool
+#Initiating Worker Thread
+
 
 class Worker(Thread):
     """ Thread executing tasks from a given tasks queue """
@@ -39,6 +40,7 @@ class Worker(Thread):
                 # Mark this task as done, whether an exception happened or not
                 self.tasks.task_done()
 
+#Initiating Thread Pool
 
 class ThreadPool:
     """ Pool of threads consuming tasks from a queue """
@@ -60,21 +62,18 @@ class ThreadPool:
         """ Wait for completion of all the tasks in the queue """
         self.tasks.join()
 
+#Information about Client
 
 class Client:
-    # Initialise a new File System client
     def __init__(self, id, socket, path_to_root):
         self.id = id
         self.socket = socket
         self.dir_level = 0
-        # Path to root is the path to the root of the file_system
         self.dir_path = [path_to_root]
-
-    #
-    # Functions for working with directories
-    #
-
-    # Move into the passed directory
+  
+    
+   # Move into the passed directory
+   
     def change_directory(self, dir_name ):
         self.dir_level = self.dir_level + 1
         self.dir_path.append( dir_name )
@@ -82,47 +81,31 @@ class Client:
     # Move up a directory level
     # Return 0 : Success
     # Return 1 : At top directory level
+   
     def move_up_directory(self):
+        
         if self.dir_level > 0:
-            self.dir_path.pop()
-            self.dir_level = self.dir_level - 1
-            return 0
+           self.dir_path.pop()
+           self.dir_level = self.dir_level - 1
+           return 0
         else:
-            return 1
+           return 1
 
-    #
-    # Testing functions
-    #
-    def log_member_data(self):
-        print ("")
-        print ("dir_path: " + (self.dir_path).__repr__())
-        print ("socket: " + (self.socket).__repr__())
-        print ("id: %d" % self.id)
-        print ("dir_level: %d" % self.dir_level)
-        print ("")
+# Processing of File
 
 class FileSystemManager:
 
-    # List for storing active clients
     active_clients = []
 
-    # Next ID to be assigned to new client and events
     clientId = 0
     eventId = 0
 
-    # List of events and IDs
-    # ( event_id , command, time )
     events = []
 
-    # List of the paths of currently locked files
-    # ( client_id, time, path )
     locked_files = []
 
-    # ThreadPool will contain threads managing the autorelease
-    # of locks
     file_system_manager_threadpool = ThreadPool(1)
 
-    # Create new File System Manager and initialise the root
     def __init__(self, root_path):
         self.root_path = root_path
         #Add autorelease function to a new thread
@@ -137,23 +120,22 @@ class FileSystemManager:
         return return_client_id
 
     # Generate a client ID and update eventId
+    
     def gen_event_id(self):
         return_event_id = self.eventId
         self.eventId = self.eventId + 1
         return return_event_id
 
-    #
-    # Functions for interacting with clients
-    #
+   #Adding Client
 
-    # Adds a new client to the file system manager
-    # Returns the id of the client
     def add_client(self, connection):
         print(self.gen_client_id())
         new_client_id = self.gen_client_id();
         new_client = Client(new_client_id, connection, self.root_path)
         self.active_clients.append(new_client)
         return new_client_id
+
+   #Removing Client
 
     def remove_client(self, client_in):
         i = 0
@@ -162,10 +144,14 @@ class FileSystemManager:
                 self.active_clients.pop(i)
             i = i + 1
 
+   #Information about active clients
+
     def get_active_client(self, client_id):
         for client in self.active_clients:
             if client.id == client_id:
                 return client
+
+   #Update Client id
 
     def update_client(self, client_in):
         i = 0
@@ -174,14 +160,16 @@ class FileSystemManager:
                 self.active_clients[i] = client_in
             i = i + 1
 
-    # checks if a client exists which has the same id as the one passed in
+    #Checking Client Existence
+
     def client_exists(self, id_in):
         for client in self.active_clients:
             if ( client.id == id_in ):
                 return True
         return False
 
-    # disconnect client from server
+    #Disconnecting Client
+
     def disconnect_client(connection, client_id):
         # get client
         client = self.get_active_client(client_id)
@@ -193,9 +181,7 @@ class FileSystemManager:
         # add event
         self.add_event("disconnect client %d" % client_id)
 
-    #
-    # Functions for interacting with events
-    #
+    #Adding Corresponding Event
 
     def add_event(self, command):
         new_event_id = self.gen_event_id()
@@ -204,40 +190,15 @@ class FileSystemManager:
         self.events.append(new_event_record)
         print ("%d\t%s\t%s" % (new_event_record[0], new_event_record[2], new_event_record[1]))
 
+    #Generating Logs
+
     def log_events(self):
         print ("EID\tTIME\t\t\t\tCOMMAND")
         for event in self.events:
             print ("%d\t%s\t%s" % (event[0], event[2], event[1]))
 
-    #
-    # Functions for moving directories
-    #
-
-    # Changes directory
-    # Return 0 : Change successfull
-    # Return 1 : Directory doesn't exist
-    def change_directory(self, dir_name, client_id):
-        client = self.get_active_client(client_id)
-        # Check if directory exists
-        new_dir_path = self.resolve_path(client_id, dir_name)
-        is_dir_val = os.path.isdir("./" + new_dir_path)
-        # Exit if directory does not exist
-        if is_dir_val == False:
-            return 1
-        # Change directory if it does
-        client.change_directory(dir_name)
-        self.update_client(client)
-        self.add_event("cd " + dir_name)
-        return 0
-
-    def move_up_directory(self, client_id):
-        client = self.get_active_client(client_id)
-        client.move_up_directory()
-        self.update_client(client)
-        self.add_event("up")
-
-    # Lists contents of directory
-    # returns response string
+    #Listing Files
+  
     def list_directory_contents(self, client_id, item_name = ""):
         path = self.resolve_path(client_id, item_name)
         item_type = self.item_exists(client_id, item_name)
@@ -256,8 +217,6 @@ class FileSystemManager:
                     return_string = return_string + "\n" + "d\t" + item
             return return_string
 
-    # Passed the name of an item this function returns the path
-    # to that item
     def resolve_path(self, client_id, item_name):
         client = self.get_active_client(client_id)
         file_path = ""
@@ -266,8 +225,8 @@ class FileSystemManager:
         file_path = file_path + item_name
         return file_path
 
-    # Passed the name of an item this function returns the path
-    # to that item
+   #Information about current directory  
+ 
     def get_working_dir(self, client_id):
         client = self.get_active_client(client_id)
         file_path = ""
@@ -275,15 +234,8 @@ class FileSystemManager:
             file_path = file_path + "%s/" % path_element
         return file_path
 
-    #
-    # Functions for interacting with locking
-    #
+   #Locking File
 
-    # Locks an item if it is not locked
-    # Return 0 : Item was locked
-    # Return 1 : Item was already locked
-    # Return 2 : Item doesn't exist
-    # Return 3 : Item is a directory
     def lock_item(self, client, item_name):
         print ("In Locking")
         file_path = self.resolve_path(client.id, item_name)
@@ -302,8 +254,8 @@ class FileSystemManager:
             self.locked_files.append(lock_record)
             self.add_event("lock " + file_path)
             return 0
+    #Release File
 
-    # Unlocks an item if it was locked
     def release_item(self, client, item_name):
         file_path = self.resolve_path(client.id, item_name)
         i = 0
@@ -319,10 +271,9 @@ class FileSystemManager:
             return 0
         else:
             return -1
-
-    # Checks if an item is locked
-    # Return True : Item is locked
-    # Returns False : Item is not locked
+    
+    #Check Lock
+    
     def check_lock(self, client, item_name):
         file_path = self.resolve_path(client.id, item_name)
         for locked_file in self.locked_files:
@@ -330,9 +281,8 @@ class FileSystemManager:
                 return True
         return False
 
-    # Traverses the list of locked items and releases locked item if
-    # client does not exist
-    # Run in a thread initialized in the __init__ function
+   #Auto Release
+
     def auto_release(self):
         while True:
             # auto release occurs every minute
@@ -345,19 +295,14 @@ class FileSystemManager:
             self.locked_files = new_locked_file_list
             self.add_event("lock auto-release")
 
+   #Generating logs
+
     def log_locks(self):
         print ("LID\tTIME\t\t\t\tPATH")
         for locked_file in self.locked_files:
             print ("%d\t%s\t%s" % locked_file)
 
-    #
-    # Functions for interacting with items
-    #
-
-    # Returns whether or not a passed file path has a corresponding file
-    # Return -1 : Item doesnt exist
-    # Return 0 : Item exists as file
-    # Return 1 : Item exists as directory
+   #Checking File
 
     def item_exists(self, client_id, item_name):
         file_path = self.resolve_path(client_id, item_name)
@@ -369,8 +314,9 @@ class FileSystemManager:
             return 1
         else:
             return -1
-
-    # Returns the path and contents of a file as a string
+ 
+  #Reading File 
+  
     def read_item(self, client_id, item_name):
         # check if item exists
         item_type = self.item_exists(client_id, item_name)
@@ -387,11 +333,9 @@ class FileSystemManager:
             self.add_event("read " + file_path)
             return_string = "%s////%s" % (file_path, file_contents)
             return return_string
+ 
+  #Writing File
 
-    # Writes a passed string to a file with a passed name
-    # Return 0 : Write successfull
-    # Return 1 : Write unsuccessfull, File locked
-    # Return 2 : Write unsuccessfull, File is a directory
     def write_item(self, client_id, item_name, file_contents):
         item_type = self.item_exists(client_id, item_name)
         # exit if the item is a directory
@@ -416,12 +360,9 @@ class FileSystemManager:
         # release it
         self.release_item(client, item_name)
         return 0
-
-    # Deletes a file
-    # Return 0 : Delete successfull
-    # Return 1 : Delete unsuccessfull, File locked
-    # Return 2 : Delete unsuccessfull, File is a Directory
-    # Return 3 : Delete unsuccessfull, File Doesn't exist
+  
+ #Delete File
+    
     def delete_file(self, client_id, item_name):
         item_type = self.item_exists(client_id, item_name)
         # exit if the item does not exist
@@ -444,50 +385,9 @@ class FileSystemManager:
         # release it
         self.release_item(client, item_name)
         return 0
-
-    # Makes new directory in current directory
-    # return 0 : successfull
-    # return 1 : file of same name exists
-    # return 2 : directory of same name exists
-    def make_directory(self, client_id, directory_name):
-        path = self.resolve_path(client_id, directory_name)
-        exists = self.item_exists(client_id, directory_name)
-        # is file
-        if exists == 0:
-            return 1
-        # is dir
-        elif exists == 1:
-            return 2
-        # doesn't exist
-        elif -1:
-            os.makedirs(path)
-            self.add_event("mkdir " + path)
-            return 0
-
-    # remove directory
-    # return -1 : directory doesn't exist
-    # return 0 : successfull
-    # return 1 : is a file
-    # return 2 : directory has locked contents
-    def remove_directory(self, client_id, directory_name):
-        path = self.resolve_path(client_id, directory_name)
-        item_type = self.item_exists(client_id, directory_name)
-        if item_type == -1:
-            return -1
-        elif item_type == 0:
-            return 1
-        elif item_type == 1:
-            directory_has_locked_elements = False
-            for lock_record in self.locked_files:
-                if lock_record[2][0:len(path)] == path:
-                    directory_has_locked_elements = True
-            if directory_has_locked_elements:
-                return 2
-            else:
-                shutil.rmtree(path)
-                self.add_event("rmdir " + path)
-                return 0
-
+ 
+#Create File 
+   
     def create_file(self, client_id, item_name):
         item_type = self.item_exists(client_id, item_name)
         #path = self.resolve_path(client_id, directory_name)        
@@ -501,14 +401,3 @@ class FileSystemManager:
            #self.release_item(client, item_name)
            return 0
 
-    #
-    # Testing functions
-    #
-    def log_member_data(self):
-        print ("")
-        print ("active_clients: "+ (self.active_clients).__repr__())
-        print ("events: "+ (self.events).__repr__())
-        print ("locked_files: "+ (self.locked_files).__repr__())
-        print ("clientId: %d" % self.clientId)
-        print ("eventId: %d" % self.eventId)
-        print ("")
