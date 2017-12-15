@@ -16,13 +16,11 @@ import Locker
 import FileServer
 port_number = 9091
 
-#ip_address = sockServeret.gethostbyname(sockServeret.gethostname())
-
-#LockRelease = Locker.Locker('FileSystemDir')
+#Calling FileDirectory
 LockRelease= FileServer.FileSystemManager('FileSystemDir')
 
 
-#Initiating Thread Pool
+#Initiating Worker
 
 
 class Worker(Thread):
@@ -45,6 +43,7 @@ class Worker(Thread):
                 # Mark this task as done, whether an exception happened or not
                 self.tasks.task_done()
 
+#Initiating Thread Pool
 
 class ThreadPool:
     """ Pool of threads consuming tasks from a queue """
@@ -68,6 +67,10 @@ class ThreadPool:
 
 server_thread_pool = ThreadPool(100)
 
+#Creating Server Socket
+
+
+
 def createServerSocket():
     # create sockServeret  and initialise to localhost:8000
     sockServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,13 +88,14 @@ def createServerSocket():
         # Hand the client interaction off to a seperate thread
         print(connection)
         server_thread_pool.add_task(
-            start_client_interaction,
+            clientResponse,
             connection,
             client_address
         )
 
+#Processing Client Request
 
-def start_client_interaction(connection, client_address):
+def clientResponse(connection, client_address):
     try:
         #A client id is generated, that is associated with this client
         client_id = LockRelease.add_client(connection)
@@ -116,12 +120,16 @@ def start_client_interaction(connection, client_address):
         print ("Got error"+ split_data)
         connection.close()
 
+#For shutting down the service
+
 def kill_service(connection):
     # Kill service
     response = "Killing Service"
     connection.sendall("%s" % response)
     connection.close()
     os._exit(0)
+
+#locking the File
 
 def lock(connection, split_data, client_id):
     if len(split_data) == 2:
@@ -148,6 +156,8 @@ def lock(connection, split_data, client_id):
     else:
         error_response(connection, 1)
 
+#Releasing the file
+
 def release(connection, split_data, client_id):
     if len(split_data) == 2:
         client = LockRelease.get_active_client(client_id)
@@ -159,13 +169,14 @@ def release(connection, split_data, client_id):
         connection.sendall(response)
     else:
         error_response(connection, 1)
-
+#Exit the Server
 
 def exit(connection, split_data, client_id):
     if len(split_data) == 1:
         LockRelease.disconnect_client(connection, client_id)
     else:
         error_response(connection, 1)
+#Generating Error Response
 
 def error_response(connection, error_code):
     response = ""
@@ -175,7 +186,7 @@ def error_response(connection, error_code):
         response = "unrecognised command"
     connection.sendall(response)
 
-#Function to split reveived data strings into its component elements
+#Processing Input Data
 def seperate_input_data(input_data):
     seperated_data = input_data.split('////')
     return seperated_data
