@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 13 08:08:01 2017
 
-@author: playsafe
-"""
 import sys
 IS_PY2 = sys.version_info < (3, 0)
 import socket
 #import threadpool
 import time
 import os
-
+import io
 
 if IS_PY2:
     from Queue import Queue
@@ -22,6 +18,7 @@ from threading import Thread
 # this is a multithreaded client program that was used to test
 # the server code
 
+#Iniating thread Pool
 
 class Worker(Thread):
     """ Thread executing tasks from a given tasks queue """
@@ -99,14 +96,14 @@ def connect_to_server_userin():
 
     while True:
         user_in = raw_input()
-        print("Given by user:"+user_in)
-        user_in =str.encode(user_in)
+       # print("Given by user:"+user_in)
+        #user_in =str.encode(user_in)
         message = generate_message(user_in)
-        print("Passed to method"+message)
+       # print("Passed to method"+message)
         cache_res = cache_interaction(sock, message)
         # if there is no cached response
         if cache_res == None:
-            sock.send( user_in)
+            sock.send(message)
             print ("Message Sent"+message)
             if message == "exit":
                 os._exit(0)
@@ -130,19 +127,27 @@ def get_server_response(socket):
                 print (data)
 
 def generate_message(input):
-    print(input)
+    #print(input)
     split_input = input.split(" ")
+    print (split_input)
     if split_input[0] == "write":
-        if len(split_input) != 2:
-            print ("unrecognised command")
-            return ""
+       # if len(split_input) != 2:
+        #  print ("unrecognised command")
+         # return ""
+        print(split_input[1])
+        print (split_input[2])
         try:
-            file = open(split_input[1])
-            file_contents = file.read()
-            return "%s////%s////%s" % (split_input[0], split_input[1], file_contents)
+            #temp=split_input[1]
+            #file = open (temp, 'w') 
+            #print (file)
+            #file_contents = file.read()
+            with open(split_input[1], 'r+') as inf:
+          	 file_contents = inf.write(split_input[2])
+                 #print(file_contents)
+            return "%s////%s////%s" % (split_input[0], split_input[1], split_input[2])
         except IOError:
-            print ("no such file in source directory")
-            return ""
+             print ("no such file in source directory")
+             return ""
     else:
         return '////'.join(split_input)
 
