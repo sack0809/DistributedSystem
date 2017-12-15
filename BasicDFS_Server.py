@@ -124,10 +124,10 @@ def start_client_interaction(connection, client_address):
                 exit(connection, split_data, client_id)
             elif split_data[0] == "touch":
                 touch(connection, split_data, client_id)
-            elif split_data[0] == "lock":
-                lock(connection, split_data, client_id)
-            elif split_data[0] == "release":
-                release(connection, split_data, client_id)
+            #elif split_data[0] == "lock":
+             #   lock(connection, split_data, client_id)
+            #elif split_data[0] == "release":
+             #   release(connection, split_data, client_id)
             else:
                 error_response(connection, 1)
     except:
