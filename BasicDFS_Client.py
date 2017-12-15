@@ -141,7 +141,7 @@ def generate_message(input):
             #file = open (temp, 'w') 
             #print (file)
             #file_contents = file.read()
-            with open(split_input[1], 'r+') as inf:
+            with open(split_input[1], 'a') as inf:
           	 file_contents = inf.write(split_input[2])
                  #print(file_contents)
             return "%s////%s////%s" % (split_input[0], split_input[1], split_input[2])

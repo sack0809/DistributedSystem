@@ -149,6 +149,7 @@ class FileSystemManager:
     # Adds a new client to the file system manager
     # Returns the id of the client
     def add_client(self, connection):
+        print(self.gen_client_id())
         new_client_id = self.gen_client_id();
         new_client = Client(new_client_id, connection, self.root_path)
         self.active_clients.append(new_client)
@@ -284,8 +285,10 @@ class FileSystemManager:
     # Return 2 : Item doesn't exist
     # Return 3 : Item is a directory
     def lock_item(self, client, item_name):
+        print ("In Locking")
         file_path = self.resolve_path(client.id, item_name)
         # if item is not a file or doesnt exist exit
+        print (file_path)
         item_type = self.item_exists(client.id, item_name)
         if item_type == -1:
             return 2
@@ -487,8 +490,9 @@ class FileSystemManager:
 
     def create_file(self, client_id, item_name):
         item_type = self.item_exists(client_id, item_name)
+        #path = self.resolve_path(client_id, directory_name)        
         # exit if the item does not existi
-
+        #print (path)
         if os.path.exists(item_name):
            os.utime(item_name, None)
         else:

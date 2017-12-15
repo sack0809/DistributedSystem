@@ -78,8 +78,10 @@ def createServerSocket():
     while True:
         # sockServer.accept returns a 2 element tuple
         connection, client_address = sockServer.accept()
-        print ("Connection from %s \n" %   connection, client_address)
+        print(connection)
+        print ("Connection from '{0}', '{1}'".format  ( connection, client_address))
         # Hand the client interaction off to a seperate thread
+        print(connection)
         server_thread_pool.add_task(
             start_client_interaction,
             connection,
@@ -122,6 +124,10 @@ def start_client_interaction(connection, client_address):
                 exit(connection, split_data, client_id)
             elif split_data[0] == "touch":
                 touch(connection, split_data, client_id)
+            elif split_data[0] == "lock":
+                lock(connection, split_data, client_id)
+            elif split_data[0] == "release":
+                release(connection, split_data, client_id)
             else:
                 error_response(connection, 1)
     except:
@@ -192,6 +198,38 @@ def write(connection, split_data, client_id):
         connection.sendall(response)
     else:
         error_response(connection, 1)
+def lock(connection, split_data, client_id):
+    if len(split_data) == 2:
+        print (client_id)
+        client = fileManager.get_active_client(client_id)
+        print ("Passing to Manager")
+        print (client)
+        print (split_data[1])
+        res = fileManager.lock_item(client, split_data[1])
+        response = ""
+        if res == 0:
+            response = "file locked"
+        elif res == 1:
+            response = "file already locked"
+        elif res == 2:
+            response = "file doesn't exist"
+        elif res == 3:
+            response = "locking directories is not supported"
+        connection.sendall(response)
+    else:
+        error_response(connection, 1)
+
+def release(connection, split_data, client_id):
+    if len(split_data) == 2:
+        client = fileManager.get_active_client(client_id)
+        res = fileManager.release_item(client, split_data[1])
+        if res == 0:
+            response = split_data[1] + " released"
+        elif res == -1:
+            response = "you do not hold the lock for %s" % split_data[1]
+        connection.sendall(response)
+    else:
+        error_response(connection, 1)
 
 def delete(connection, split_data, client_id):
     if len(split_data) == 2:
@@ -249,7 +287,6 @@ def pwd(connection, split_data, client_id):
 
 def touch(connection, split_data, client_id):
     if len(split_data) == 2:
-        print("Passing to file manager")
         res = fileManager.create_file(client_id, split_data[1])
         response = ""
         if res == 0:
